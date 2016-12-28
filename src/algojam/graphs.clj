@@ -3,17 +3,10 @@
             [clojure.spec.gen :as gen]))
 
 (s/def ::node any?)
+(s/def ::edge-desc any?)
 
-(defn- comparable? [x] (instance? Comparable x))
-(s/def ::Comparable (s/spec comparable?
-                            :gen (fn [] (gen/one-of [(gen/string)
-                                                     (gen/int)
-                                                     (gen/double)
-                                                     (gen/list (gen/any-printable))
-                                                     (gen/vector (gen/any-printable))]))))
-
-(s/def ::edge-weight ::Comparable)
-(s/def ::edge-weights (s/coll-of ::edge-weight))
+(s/def ::edges (s/map-of ::node ::edge-desc))
+(s/def ::graph-structure (s/spec (s/map-of ::node ::edges)))
 
 (defn- edges->graph [conns]
   (reduce (fn [graph [from to weight]]
@@ -32,14 +25,6 @@
                     (conj ws weight))))))
           {}
           conns))
-(s/def ::graph-structure (s/spec (s/map-of ::node (s/map-of ::node ::edge-weights))
-                                 :gen (fn [] (gen/fmap
-                                               edges->graph
-                                               (gen/vector (gen/tuple
-                                                             (s/gen ::node)
-                                                             (s/gen ::node)
-                                                             (s/gen ::edge-weight)))))))
-
 (s/def ::graph
   (s/spec (s/and ::graph-structure
                  (fn [graph] (let [nodes (set (keys graph))]
@@ -49,14 +34,21 @@
           :gen (fn [] (gen/bind (gen/not-empty (gen/vector (s/gen ::node)))
                                 (fn [nodes] (gen/fmap
                                               edges->graph
-                                              (gen/vector (gen/tuple
-                                                            (gen/elements nodes)
-                                                            (gen/elements nodes)
-                                                            (gen/frequency [[8 (s/gen ::edge-weight)]
-                                                                            [2 (gen/return nil)]])))))))))
+                                              (gen/vector
+                                                (gen/tuple
+                                                  (gen/elements nodes)
+                                                  (gen/elements nodes)
+                                                  (gen/frequency [[8 (s/gen ::edge-desc)]
+                                                                  [2 (gen/return nil)]])))))))))
 
 (defn -->> [graph node]
   (get graph node {}))
+
+(s/fdef -->>
+        :args (s/cat :graph ::graph :node ::node)
+        :ret ::edges
+        :fn #(or (not ((-> % :args :graph) (-> % :args :node)))
+                 (= (-> % :ret) ((-> % :args :graph) (-> % :args :node)))))
 
 (defn -->? [graph start end]
   (contains? (-->> graph start) end))
