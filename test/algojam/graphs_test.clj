@@ -1,4 +1,4 @@
-(ns graphs-test
+(ns algojam.graphs-test
   (:require [clojure.spec.test :as st]
             [clojure.test :as t]
             [algojam.graphs :as g]))
