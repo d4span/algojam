@@ -47,8 +47,12 @@
 (s/fdef -->>
         :args (s/cat :graph ::graph :node ::node)
         :ret ::edges
-        :fn #(or (not ((-> % :args :graph) (-> % :args :node)))
-                 (= (-> % :ret) ((-> % :args :graph) (-> % :args :node)))))
+        :fn #(let [args    (-> % :args)
+                   graph   (:graph args)
+                   node    (:node args)
+                   node->> (graph node)]
+               (or (not node->>)
+                   (= (-> % :ret) node->>))))
 
 (defn -->? [graph start end]
   (contains? (-->> graph start) end))
