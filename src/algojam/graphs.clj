@@ -8,38 +8,14 @@
 (s/def ::edges (s/map-of ::node ::edge-desc))
 (s/def ::graph-structure (s/spec (s/map-of ::node ::edges)))
 
-(defn- edges->graph [conns]
-  (reduce (fn [graph [from to weight]]
-            (let [from-->> (get graph from {})
-                  ws       (get from-->> to [])]
-              (if (nil? weight)
-                (assoc
-                  graph
-                  from
-                  from-->>)
-                (assoc
-                  graph
-                  from
-                  (assoc from-->>
-                    to
-                    (conj ws weight))))))
-          {}
-          conns))
 (s/def ::graph
   (s/spec (s/and ::graph-structure
                  (fn [graph] (let [nodes (set (keys graph))]
                                (every? (fn [node] (every? #(nodes %)
                                                           (-> graph (get node {}) keys set)))
                                        nodes))))
-          :gen (fn [] (gen/bind (gen/not-empty (gen/vector (s/gen ::node)))
-                                (fn [nodes] (gen/fmap
-                                              edges->graph
-                                              (gen/vector
-                                                (gen/tuple
-                                                  (gen/elements nodes)
-                                                  (gen/elements nodes)
-                                                  (gen/frequency [[8 (s/gen ::edge-desc)]
-                                                                  [2 (gen/return nil)]])))))))))
+          :gen #(algojam.graphs.generators/graph-gen
+                  (s/gen ::node) (s/gen ::edge-desc))))
 
 (defn -->> [graph node]
   (get graph node {}))
