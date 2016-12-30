@@ -1,6 +1,7 @@
 (ns algojam.graphs
   (:require [clojure.spec :as s]
-            [clojure.spec.gen :as gen]))
+            [clojure.spec.gen :as gen]
+            [algojam.graphs.generators :as gens]))
 
 (s/def ::node any?)
 (s/def ::edge-desc any?)
@@ -14,8 +15,7 @@
                                (every? (fn [node] (every? #(nodes %)
                                                           (-> graph (get node {}) keys set)))
                                        nodes))))
-          :gen #(algojam.graphs.generators/graph-gen
-                  (s/gen ::node) (s/gen ::edge-desc))))
+          :gen #(gens/graph-gen (s/gen ::node) (s/gen ::edge-desc))))
 
 (defn -->> [graph node]
   (get graph node {}))
